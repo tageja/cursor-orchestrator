@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { MessageBubble } from '../components/MessageBubble';
 import type { HostMessage } from '../types/messages';
+import { getVsCodeApi } from '../vscodeApi';
 
 interface ChatMessage {
   id: string;
@@ -9,22 +10,11 @@ interface ChatMessage {
   timestamp: string;
 }
 
-declare global {
-  interface Window {
-    acquireVsCodeApi?: () => { postMessage: (msg: unknown) => void };
-  }
-}
-
 export function PMChat(): React.ReactElement {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [vscode, setVscode] = useState<{ postMessage: (msg: unknown) => void } | null>(null);
-
-  useEffect(() => {
-    const api = window.acquireVsCodeApi?.();
-    setVscode(api ?? null);
-  }, []);
+  const vscode = getVsCodeApi();
 
   useEffect(() => {
     const handler = (event: MessageEvent): void => {
@@ -206,7 +196,8 @@ export function PMChat(): React.ReactElement {
 
   const send = useCallback(() => {
     const text = input.trim();
-    if (!text || !vscode) return;
+    const api = getVsCodeApi();
+    if (!text || !api) return;
     setInput('');
     setMessages((prev) => [
       ...prev,
@@ -218,8 +209,8 @@ export function PMChat(): React.ReactElement {
       },
     ]);
     setLoading(true);
-    vscode.postMessage({ type: 'USER_MESSAGE', body: text });
-  }, [input, vscode]);
+    api.postMessage({ type: 'USER_MESSAGE', body: text });
+  }, [input]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 8 }}>
@@ -258,7 +249,7 @@ export function PMChat(): React.ReactElement {
         <button
           type="button"
           onClick={send}
-          disabled={loading || !input.trim()}
+          disabled={loading || !input.trim() || !getVsCodeApi()}
           style={{
             padding: '8px 16px',
             fontFamily: 'var(--vscode-font-family)',

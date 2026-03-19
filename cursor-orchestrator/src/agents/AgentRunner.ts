@@ -60,9 +60,10 @@ async function streamModelResponse(messages: vscode.LanguageModelChatMessage[]):
   if (!lm?.selectChatModels) {
     throw new Error('Language Model API (vscode.lm) is not available. Use a supported environment (e.g. Cursor).');
   }
-  const models = await lm.selectChatModels({});
+  // Call with no filter to get all models Cursor exposes; {} means "empty string vendor" which matches nothing.
+  const models = await lm.selectChatModels();
   if (models.length === 0) {
-    throw new Error('No chat model available. Ensure a language model is configured.');
+    throw new Error('No language model found. In Cursor, open the model picker (bottom status bar) and select a model, then try again.');
   }
   const model = models[0];
   const response = await model.sendRequest(messages, {});

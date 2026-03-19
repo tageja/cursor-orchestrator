@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { HostMessage, AuditEntryMessage } from '../types/messages';
-
-declare global {
-  interface Window {
-    acquireVsCodeApi?: () => { postMessage: (msg: unknown) => void };
-  }
-}
+import { getVsCodeApi } from '../vscodeApi';
 
 function formatEntry(e: AuditEntryMessage): string {
   const parts = [e.role, e.action];
@@ -16,16 +11,10 @@ function formatEntry(e: AuditEntryMessage): string {
 
 export function AuditTrail(): React.ReactElement {
   const [entries, setEntries] = useState<AuditEntryMessage[]>([]);
-  const [vscode, setVscode] = useState<{ postMessage: (msg: unknown) => void } | null>(null);
+  const vscode = getVsCodeApi();
 
   useEffect(() => {
-    const api = window.acquireVsCodeApi?.();
-    setVscode(api ?? null);
-  }, []);
-
-  useEffect(() => {
-    if (!vscode) return;
-    vscode.postMessage({ type: 'REQUEST_STATE' });
+    vscode?.postMessage({ type: 'REQUEST_STATE' });
   }, [vscode]);
 
   useEffect(() => {
