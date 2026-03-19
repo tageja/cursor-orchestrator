@@ -1,0 +1,52 @@
+---
+description: Exact format every agent must write to docs/agent-handoffs/ before finishing.
+globs:
+alwaysApply: true
+---
+
+# Cursor Orchestrator — Handoff Protocol
+
+Every agent working on this project must write a handoff document to `docs/agent-handoffs/` before ending their session. Use the template below. Filename: `phase-XX-complete.md` (e.g. `phase-01-complete.md`) or a descriptive name if not phase-based.
+
+## Required Format
+
+```markdown
+## Handoff: [Phase Name] → [Next Phase]
+Date: YYYY-MM-DD
+Agent: [e.g. Phase 1 implementation]
+Status: COMPLETE | PARTIAL
+
+### What Was Completed
+- Bullet list of deliverables.
+
+### Files Created (exact paths)
+- cursor-orchestrator/package.json
+- ...
+
+### Files Modified (exact paths + what changed)
+- docs/PROGRESS.md — Phase 1 checkboxes marked complete.
+
+### Tests/Verification Done
+- npm run build succeeded.
+- Extension activated via F5.
+- ...
+
+### Open Issues (blocking)
+- None | List blocking issues.
+
+### Open Issues (non-blocking)
+- None | List non-blocking issues.
+
+### Exact Next Agent Instruction
+You are the [role] agent. Your task is [specific task].
+Do NOT touch: [list files or areas].
+Success criteria: [measurable criteria].
+Start by reading: docs/PROGRESS.md, docs/SCOPE.md, this file.
+```
+
+## Rules
+
+1. Write the handoff before ending your session — not after.
+2. Use exact paths; no relative or ambiguous references.
+3. If status is PARTIAL, list exactly what remains and what the next agent must do first.
+4. "Exact Next Agent Instruction" must be copy-pasteable; the next agent should be able to start without guessing.

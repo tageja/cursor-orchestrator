@@ -1,0 +1,22 @@
+# Source (bundled into dist/extension.js)
+src/**
+extension.ts
+tsconfig.json
+esbuild.js
+.eslintrc.json
+
+# Webview source (built into dist/webview/)
+webview/src/**
+webview/node_modules/**
+webview/vite.config.ts
+webview/tsconfig.json
+webview/index.html
+webview/package-lock.json
+
+# Dev tooling
+node_modules/**
+.gitignore
+*.md
+!README.md
+
+# Keep: dist/**, assets/**, package.json, README.md

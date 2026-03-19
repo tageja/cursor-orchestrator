@@ -1,0 +1,74 @@
+---
+description: Which phase creates which file. Do not touch files from a previous phase unless PROGRESS.md authorizes it.
+globs:
+alwaysApply: true
+---
+
+# Cursor Orchestrator — File Ownership
+
+## Rule
+
+Do not create a file that is not listed below for the phase you are in, unless you first add it to docs/PROGRESS.md and get it agreed. Do not modify files owned by a previous phase unless there is an explicit note in docs/PROGRESS.md authorizing the change.
+
+## Phase 0 — Rules & Documentation
+
+Creates:
+
+- `.cursor/rules/00-project-scope.mdc`
+- `.cursor/rules/01-architecture.mdc`
+- `.cursor/rules/02-file-ownership.mdc`
+- `.cursor/rules/03-handoff-protocol.mdc`
+- `.cursor/rules/04-progress-tracking.mdc`
+- `.cursor/rules/05-coding-standards.mdc`
+- `.cursor/rules/06-no-hallucination.mdc`
+- `docs/SCOPE.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PROGRESS.md`
+- `docs/SCHEMAS.md`
+- `docs/agent-handoffs/TEMPLATE.md`
+
+## Phase 1 — Extension Scaffold + State Store
+
+Creates:
+
+- `cursor-orchestrator/package.json`
+- `cursor-orchestrator/tsconfig.json`
+- `cursor-orchestrator/.eslintrc.json`
+- `cursor-orchestrator/esbuild.js`
+- `cursor-orchestrator/extension.ts`
+- `cursor-orchestrator/src/state/types.ts`
+- `cursor-orchestrator/src/state/ProjectStore.ts`
+- `cursor-orchestrator/src/state/FeatureStore.ts`
+- `cursor-orchestrator/src/state/TaskStore.ts`
+- `cursor-orchestrator/src/state/AuditLog.ts`
+- `cursor-orchestrator/src/orchestrator/StateMachine.ts`
+- `cursor-orchestrator/src/orchestrator/TransitionGuard.ts`
+- `cursor-orchestrator/src/ui/DashboardProvider.ts` (stub only: placeholder HTML)
+
+## Phase 2 — PM Chat + vscode.lm
+
+Creates:
+
+- `cursor-orchestrator/src/agents/prompts/pm.ts`
+- `cursor-orchestrator/src/agents/parsers/outputParser.ts`
+- `cursor-orchestrator/src/agents/AgentRunner.ts`
+- `cursor-orchestrator/src/ui/DashboardProvider.ts` (full implementation; replaces stub)
+- `cursor-orchestrator/webview/package.json`
+- `cursor-orchestrator/webview/vite.config.ts`
+- `cursor-orchestrator/webview/tsconfig.json`
+- `cursor-orchestrator/webview/src/types/messages.ts`
+- `cursor-orchestrator/webview/src/App.tsx`
+- `cursor-orchestrator/webview/src/panels/PMChat.tsx`
+- `cursor-orchestrator/webview/src/components/MessageBubble.tsx`
+- `cursor-orchestrator/webview/index.html` (if required by Vite)
+- `cursor-orchestrator/webview/src/main.tsx` (Vite entry; if used)
+- `docs/agent-handoffs/phase-01-complete.md` (written at end of Phase 1)
+- `docs/agent-handoffs/phase-02-complete.md` (written at end of Phase 2)
+
+Modifies (authorized):
+
+- `docs/PROGRESS.md` — Phase 1 and Phase 2 sections updated to COMPLETE; checkboxes filled.
+
+## Locked After Creation
+
+Once a file is created and marked complete in PROGRESS.md, do not refactor or rename it without documenting the change in PROGRESS.md and in the next handoff document. This keeps handoffs accurate.

@@ -1,0 +1,24 @@
+# Node
+node_modules/
+cursor-orchestrator/node_modules/
+cursor-orchestrator/webview/node_modules/
+
+# Build output
+cursor-orchestrator/dist/
+
+# VSIX (can be rebuilt with npm run package)
+cursor-orchestrator/*.vsix
+
+# Temp verification scripts
+phase78-verify.mjs
+phase9-verify.mjs
+
+# AI workspace state (user-specific)
+.ai-workspace/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cursor/VS Code local
+.cursor/projects/

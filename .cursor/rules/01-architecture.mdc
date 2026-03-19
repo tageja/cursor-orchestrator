@@ -1,0 +1,94 @@
+---
+description: Exact folder structure, file responsibilities, data flow. No guessing where things live.
+globs:
+alwaysApply: true
+---
+
+# Cursor Orchestrator — Architecture
+
+## Folder Structure (All Paths)
+
+```
+c:\Users\Admin\ProductAuto\
+├── .cursor\rules\
+│   ├── 00-project-scope.mdc
+│   ├── 01-architecture.mdc
+│   ├── 02-file-ownership.mdc
+│   ├── 03-handoff-protocol.mdc
+│   ├── 04-progress-tracking.mdc
+│   ├── 05-coding-standards.mdc
+│   └── 06-no-hallucination.mdc
+├── docs\
+│   ├── SCOPE.md
+│   ├── ARCHITECTURE.md
+│   ├── PROGRESS.md
+│   ├── SCHEMAS.md
+│   └── agent-handoffs\
+│       ├── TEMPLATE.md
+│       └── phase-01-complete.md
+└── cursor-orchestrator\
+    ├── package.json
+    ├── tsconfig.json
+    ├── .eslintrc.json
+    ├── esbuild.js
+    ├── extension.ts
+    ├── src\
+    │   ├── state\
+    │   │   ├── types.ts
+    │   │   ├── ProjectStore.ts
+    │   │   ├── FeatureStore.ts
+    │   │   ├── TaskStore.ts
+    │   │   └── AuditLog.ts
+    │   ├── orchestrator\
+    │   │   ├── StateMachine.ts
+    │   │   └── TransitionGuard.ts
+    │   ├── agents\
+    │   │   ├── prompts\pm.ts
+    │   │   ├── parsers\outputParser.ts
+    │   │   └── AgentRunner.ts
+    │   └── ui\
+    │       └── DashboardProvider.ts
+    └── webview\
+        ├── package.json
+        ├── vite.config.ts
+        ├── tsconfig.json
+        └── src\
+            ├── App.tsx
+            ├── panels\PMChat.tsx
+            ├── components\MessageBubble.tsx
+            └── types\messages.ts
+```
+
+## File Responsibilities
+
+| Path | Responsibility |
+|------|----------------|
+| `cursor-orchestrator/extension.ts` | Entry point; activate(); registers DashboardProvider, orchestrator.initWorkspace command |
+| `cursor-orchestrator/src/state/types.ts` | All shared TypeScript types: FeatureStatus, TaskStatus, AgentRole, Feature, Task, Handoff, AuditEntry, PMCommand |
+| `cursor-orchestrator/src/state/ProjectStore.ts` | Read/write `{workspace}/.ai-workspace/project.json` |
+| `cursor-orchestrator/src/state/FeatureStore.ts` | Read/write `{workspace}/.ai-workspace/features.json` |
+| `cursor-orchestrator/src/state/TaskStore.ts` | Read/write `{workspace}/.ai-workspace/tasks.json` |
+| `cursor-orchestrator/src/state/AuditLog.ts` | Append JSONL to `{workspace}/.ai-workspace/audit-log.jsonl` |
+| `cursor-orchestrator/src/orchestrator/StateMachine.ts` | VALID_TRANSITIONS map, canTransition(), transition() |
+| `cursor-orchestrator/src/orchestrator/TransitionGuard.ts` | validate(transition, context) — blocks invalid state changes |
+| `cursor-orchestrator/src/agents/prompts/pm.ts` | buildPMPrompt(context) → LanguageModelChatMessage[] |
+| `cursor-orchestrator/src/agents/parsers/outputParser.ts` | parseAgentOutput(raw, schema) → Result<T, ParseError>; zod schemas |
+| `cursor-orchestrator/src/agents/AgentRunner.ts` | runAgent(role, prompt) → calls vscode.lm, parses, logs to AuditLog |
+| `cursor-orchestrator/src/ui/DashboardProvider.ts` | Registers sidebar webview; loads webview dist; postMessage bridge |
+| `cursor-orchestrator/webview/src/App.tsx` | Mounts PMChat; handles message from host |
+| `cursor-orchestrator/webview/src/panels/PMChat.tsx` | User input, message list, send button |
+| `cursor-orchestrator/webview/src/types/messages.ts` | WebviewMessage and HostMessage typed contract |
+
+## Data Flow
+
+1. User types in PM Chat (webview).
+2. Webview sends postMessage `USER_MESSAGE` to extension host (DashboardProvider).
+3. DashboardProvider calls AgentRunner with PM role and buildPMPrompt(context).
+4. AgentRunner calls vscode.lm with the prompt; streams response.
+5. AgentRunner parses response with outputParser (zod); gets PMCommand.
+6. DashboardProvider (or orchestrator) applies command: e.g. CREATE_FEATURE → FeatureStore.
+7. StateMachine/TransitionGuard validate; FeatureStore and AuditLog write to disk.
+8. AgentRunner sends postMessage `AGENT_REPLY` to webview.
+9. Webview renders reply in message list.
+
+Workspace root for `.ai-workspace/`: `vscode.workspace.workspaceFolders?.[0]?.uri.fsPath`.

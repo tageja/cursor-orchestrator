@@ -1,0 +1,28 @@
+---
+description: Every agent MUST update docs/PROGRESS.md at start and end of work. PROGRESS.md is the single source of truth.
+globs:
+alwaysApply: true
+---
+
+# Cursor Orchestrator — Progress Tracking
+
+## Rule
+
+Every agent MUST update `docs/PROGRESS.md`:
+
+1. **At the start** of work: set the phase you are working on to `Status: IN_PROGRESS` and note the date.
+2. **As you complete each file or task**: check off the corresponding checkbox and add the date (and file path if not obvious).
+3. **At the end** of work: set the phase to `Status: COMPLETE` or `Status: PARTIAL`, and ensure all checkboxes for completed items are checked.
+
+Do not batch-update PROGRESS.md at the very end. Update it as you go so that if context is lost, the next agent (or you in a new session) sees accurate state.
+
+## PROGRESS.md Structure
+
+- One section per phase (Phase 0, Phase 1, Phase 2, ...).
+- Each section has: Status (PENDING | IN_PROGRESS | COMPLETE | PARTIAL), Started date (if in progress), Completed date (if complete).
+- Under each phase: a checkbox list of every file or deliverable, with `- [x] path/to/file` when done.
+- Sections: Open Issues (Blocking), Open Issues (Non-Blocking), Decisions Made.
+
+## Single Source of Truth
+
+PROGRESS.md is the authority for "what exists on disk" and "what has been completed". When in doubt, read PROGRESS.md first. Do not rely on memory or chat history for completion state.

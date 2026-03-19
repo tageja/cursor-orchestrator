@@ -1,0 +1,98 @@
+{
+  "name": "cursor-orchestrator",
+  "displayName": "Cursor Orchestrator",
+  "description": "AI project orchestrator: PM chat, multi-agent workflow, state machine, 60-min review",
+  "version": "0.1.0",
+  "publisher": "cursor-orchestrator",
+  "icon": "assets/icon.png",
+  "keywords": [
+    "ai",
+    "orchestrator",
+    "agent",
+    "pm",
+    "automation"
+  ],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "AI",
+    "Machine Learning",
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:orchestrator.dashboard",
+    "onCommand:orchestrator.initWorkspace"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "orchestrator.initWorkspace",
+        "title": "Orchestrator: Initialize AI Workspace"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "orchestrator",
+          "title": "Orchestrator",
+          "icon": "$(project)"
+        }
+      ]
+    },
+    "views": {
+      "orchestrator": [
+        {
+          "id": "orchestrator.dashboard",
+          "name": "PM Chat",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Cursor Orchestrator",
+        "properties": {
+          "orchestrator.reviewIntervalMinutes": {
+            "type": "number",
+            "default": 60,
+            "minimum": 5,
+            "description": "Minutes between automatic PM review cycles when the orchestrator sidebar is open."
+          },
+          "orchestrator.testRunner": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "jest",
+              "vitest",
+              "none"
+            ],
+            "default": "auto",
+            "description": "Test runner to use for Test Agent. 'auto' probes for jest/vitest config files; 'none' uses LLM simulation only."
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "build:webview": "cd webview && npm run build",
+    "lint": "npx eslint src extension.ts --ext .ts",
+    "compile": "npm run build",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,36 @@
+---
+description: TypeScript, Zod, logging, JSDoc, file length, ESLint. Must pass before handoff.
+globs: "cursor-orchestrator/**/*.ts"
+alwaysApply: false
+---
+
+# Cursor Orchestrator — Coding Standards
+
+## TypeScript
+
+- Use strict mode: `"strict": true` in tsconfig.json.
+- All shared types (FeatureStatus, TaskStatus, AgentRole, Feature, Task, Handoff, AuditEntry, PMCommand) are defined in `cursor-orchestrator/src/state/types.ts`. Import from there; no inline `any` and no duplicate type definitions elsewhere.
+
+## Validation
+
+- Use Zod for all runtime validation (agent output, config, state). No ad-hoc typeof checks for structured data.
+
+## Logging and side effects
+
+- Do not use `console.log` in extension or webview code. Use `AuditLog` (append to audit-log.jsonl) for agent actions and state changes, or `vscode.window.showInformationMessage` for user-visible notifications.
+
+## Documentation
+
+- Every exported function must have a JSDoc comment with `@param` for each parameter and `@returns` for the return value.
+
+## File size
+
+- Keep files under 200 lines. If a file grows beyond that, split into smaller modules (e.g. separate by domain or by export group).
+
+## Linting
+
+- ESLint with Airbnb-based config. Run `npm run lint` (or equivalent) before handoff. Zero errors and zero warnings for the code you added or changed.
+
+## Webview
+
+- Webview is a separate Vite/React app. Use plain CSS (or CSS variables); no Tailwind in the webview. Keep PMChat.tsx under 200 lines.

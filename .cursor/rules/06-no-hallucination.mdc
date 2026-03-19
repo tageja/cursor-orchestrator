@@ -1,0 +1,27 @@
+---
+description: Evidence-based claims, no inventing files or APIs, document non-obvious decisions.
+globs:
+alwaysApply: true
+---
+
+# Cursor Orchestrator — No Hallucination
+
+## Rules
+
+1. **File existence**  
+   No agent may claim a file exists without having read it (e.g. via read_file or grep). Do not assume a path exists.
+
+2. **Task completion**  
+   No agent may mark a task or phase as done without listing the exact files created or modified. Completion claims must be traceable to real paths.
+
+3. **Uncertainty**  
+   If a required dependency, API, or behavior is uncertain (e.g. vscode.lm API surface, Cursor-specific behavior), do not invent an answer. Stop and write it as an open issue in docs/PROGRESS.md or in the handoff document. The next agent or the user can resolve it.
+
+4. **Non-obvious code**  
+   Every code decision that is not obvious from the file or type names must have a short comment explaining WHY (e.g. why a transition is disallowed, why a field is optional).
+
+5. **State and artifacts**  
+   Agents must not infer state from chat history alone. State comes from the state store (project.json, features.json, tasks.json, audit-log.jsonl). When reporting status, cite these artifacts.
+
+6. **Handoff accuracy**  
+   Handoff documents must list exact paths and exact next steps. No vague "continue the work" without specifying what to do and what not to touch.

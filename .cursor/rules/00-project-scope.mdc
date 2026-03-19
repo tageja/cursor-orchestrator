@@ -1,0 +1,67 @@
+---
+description: Project vision, extension purpose, agent hierarchy, technology choices. Read this first.
+globs: 
+alwaysApply: true
+---
+
+# Cursor Orchestrator — Project Scope
+
+## What This Project Is
+
+A **VS Code extension** that runs inside Cursor and acts as an **AI project orchestrator**. The user talks only to a **Product Manager (PM)** agent. The extension's TypeScript orchestrator routes work through a hierarchy of AI agents, enforces a strict state machine, pauses every 60 minutes for PM review, and persists all state in JSON files — never in chat memory.
+
+## What the Extension Does
+
+- Provides a single sidebar panel with a **PM Chat** — the only human-facing interface.
+- The orchestrator (extension host code) decides which agent to invoke next based on state.
+- Agents are invoked via `vscode.lm` API; each call receives a narrow, grounded prompt (task + constraints + evidence files).
+- All project/feature/task state lives in `.ai-workspace/` JSON files in the user's workspace root.
+- A 60-minute scheduler pauses all agents and invokes the PM for review; resume requires explicit PM action.
+
+## Agent Hierarchy
+
+```
+You (human)
+  └── Product Manager     [ONLY agent that talks to user]
+        └── Product Lead   [execution brain; breaks scope, routes work]
+             ├── Dev Lead  [splits features into tasks; one active dev at a time]
+             │     └── Dev Agent 1..N
+             └── Test Manager
+                   └── Test Agent 1..N
+```
+
+- **Product Manager**: Only role allowed to interact with user. Can pause/resume, approve scope, approve done.
+- **Product Lead**: Decomposes scope into features/tasks, assigns work. Cannot talk to user. Cannot approve own work.
+- **Dev Lead**: Splits implementation into byte-sized tasks, marks feature integrated. Cannot mark feature accepted.
+- **Dev Agent**: Edits only assigned files. Reports implementation done. Cannot send directly to testing.
+- **Test Manager**: Writes test plan, assigns tests. Cannot change product scope.
+- **Test Agent**: Executes tests, reports pass/fail/bugs. Cannot approve business readiness.
+
+## Technology Choices
+
+- **Runtime**: VS Code Extension API (TypeScript). Works in Cursor because Cursor is VS Code-based.
+- **AI**: `vscode.lm` API — no separate API key; uses user's Cursor subscription.
+- **State**: JSON files in `.ai-workspace/` (project.json, features.json, tasks.json, audit-log.jsonl).
+- **Validation**: Zod for all agent output and runtime validation.
+- **Extension build**: esbuild (single bundle). Webview build: Vite + React.
+
+## What Phase 1 Delivers
+
+- Extension scaffold (package.json, tsconfig, esbuild, extension.ts).
+- State store: ProjectStore, FeatureStore, TaskStore, AuditLog — all reading/writing `.ai-workspace/`.
+- State machine with 13 feature states and transition guards.
+- Stub DashboardProvider (sidebar view with placeholder HTML).
+- `orchestrator.initWorkspace` command that creates `.ai-workspace/` with correct JSON files.
+
+## What Phase 2 Delivers
+
+- PM prompt builder and output parser (zod schema for PMCommand).
+- AgentRunner that calls vscode.lm, streams response, parses output, logs to AuditLog.
+- Full DashboardProvider: webview loads, postMessage bridge USER_MESSAGE → AgentRunner → AGENT_REPLY.
+- Webview: React app with PMChat panel (input, message list, send).
+- CREATE_FEATURE command creates a new feature in FeatureStore and reflects in UI.
+
+## What Phases 3–8 Deliver (Referenced Only; Not Built in Phase 1–2)
+
+- Phase 3: AgentRouter, LockManager, Product Lead prompt/parser, wire Product Lead after PM APPROVE_SCOPE.
+- Phase 4+: Remaining agent roles, scheduler (60-min pause), full dashboard panels, validation layer, hardening.
