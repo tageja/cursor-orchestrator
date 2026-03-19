@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { AgentRole } from '../state/types';
+import { callAnthropic } from '../util/anthropicClient';
 import { AuditLog } from '../state/AuditLog';
 import { parseAgentOutput, PMCommandSchema, type PMCommandParsed } from './parsers/outputParser';
 import { ProductLeadCommandSchema, type ProductLeadCommandParsed } from './parsers/productLeadParser';
@@ -56,24 +57,28 @@ export interface TestAgentAgentResult {
 }
 
 async function streamModelResponse(messages: vscode.LanguageModelChatMessage[]): Promise<string> {
+  // Try vscode.lm first (works in VS Code with GitHub Copilot or future Cursor support).
   const lm = (vscode as unknown as { lm?: { selectChatModels: (sel?: unknown) => Promise<vscode.LanguageModelChat[]> } }).lm;
-  if (!lm?.selectChatModels) {
-    throw new Error('Language Model API (vscode.lm) is not available. Use a supported environment (e.g. Cursor).');
-  }
-  // Call with no filter to get all models Cursor exposes; {} means "empty string vendor" which matches nothing.
-  const models = await lm.selectChatModels();
-  if (models.length === 0) {
-    throw new Error('No language model found. In Cursor, open the model picker (bottom status bar) and select a model, then try again.');
-  }
-  const model = models[0];
-  const response = await model.sendRequest(messages, {});
-  let raw = '';
-  for await (const chunk of response.stream) {
-    if (chunk instanceof vscode.LanguageModelTextPart) {
-      raw += chunk.value;
+  if (lm?.selectChatModels) {
+    try {
+      const models = await lm.selectChatModels();
+      if (models.length > 0) {
+        const model = models[0];
+        const response = await model.sendRequest(messages, {});
+        let raw = '';
+        for await (const chunk of response.stream) {
+          if (chunk instanceof vscode.LanguageModelTextPart) {
+            raw += chunk.value;
+          }
+        }
+        return raw;
+      }
+    } catch {
+      // vscode.lm failed; fall through to Anthropic API.
     }
   }
-  return raw;
+  // Fallback: call Anthropic API directly using orchestrator.anthropicApiKey from settings.
+  return callAnthropic(messages);
 }
 
 /**

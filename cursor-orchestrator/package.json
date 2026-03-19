@@ -70,6 +70,16 @@
             ],
             "default": "auto",
             "description": "Test runner to use for Test Agent. 'auto' probes for jest/vitest config files; 'none' uses LLM simulation only."
+          },
+          "orchestrator.anthropicApiKey": {
+            "type": "string",
+            "default": "",
+            "description": "Anthropic API key for Claude (used when vscode.lm is unavailable). Get yours at https://console.anthropic.com/. Store in User Settings, not Workspace Settings."
+          },
+          "orchestrator.anthropicModel": {
+            "type": "string",
+            "default": "claude-3-5-sonnet-20241022",
+            "description": "Anthropic model to use when calling the API directly (e.g. claude-3-5-sonnet-20241022, claude-3-haiku-20240307)."
           }
         }
       }
