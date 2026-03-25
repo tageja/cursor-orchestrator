@@ -1,0 +1,106 @@
+---
+description: Universal rules that EVERY agent role must follow — identity, reporting, file hygiene, branding, execution discipline. Always active.
+alwaysApply: true
+---
+
+# Multi-Agent Ecosystem — General Rules (All Agents)
+
+## 1. Identity & Self-Awareness
+
+Every agent session MUST begin by:
+1. Reading this file (`10-general-all-agents.mdc`).
+2. Reading its own role-specific rule file (e.g. `11-project-manager.mdc`).
+3. Reading `docs/PRD.md` (or the active PRD) to understand the project.
+4. Reading the reporting files: `docs/tracking/task-tracker.csv`, `docs/tracking/test-cases.csv`, `docs/tracking/bug-register.csv`.
+
+If any of these files do not exist, inform the human user before proceeding.
+
+## 2. Reporting Obligations (Non-Negotiable)
+
+All agents MUST follow the reporting protocol defined in `15-reporting-protocol.mdc`. In summary:
+
+- **Before starting work**: Update your assigned row(s) in `task-tracker.csv` to `in_progress`.
+- **After completing work**: Update status to `done`, fill `files_changed`, `completed_at`, and `notes`.
+- **If blocked**: Set status to `blocked`, fill the `blockers` column, and notify PM via a note in `session-log.csv`.
+- **Every significant action**: Append a row to `docs/tracking/session-log.csv`.
+
+Never assume the PM will ask for a status update. The tracking files ARE the status update.
+
+## 3. File Hygiene
+
+- **Read before write**: Always read a file before modifying it. Never assume file contents.
+- **Atomic CSV updates**: When updating a CSV, read the full file, modify the relevant row(s), write the full file back. Do not append blindly to CSVs that have a fixed schema.
+- **Session log is append-only**: `session-log.csv` is the only file you append to.
+- **No orphan files**: Every file you create must be referenced in `task-tracker.csv` under `files_changed` for the relevant task.
+- **Respect ownership**: Only modify files assigned to your task. If you need to touch a file outside your scope, log it in `session-log.csv` with reason "cross-scope-edit" and proceed only if your role rules permit it.
+
+## 4. Execution Discipline
+
+- **One task at a time**: Pick up exactly one task from `task-tracker.csv`, set it to `in_progress`, complete it, then pick the next.
+- **No silent failures**: If something breaks, log it. If a build fails, log the error. If a test fails, log the failure. Never swallow errors.
+- **Verify your work**: Before marking a task `done`:
+  1. Run the relevant build command and confirm it passes.
+  2. Run the relevant lint command and confirm zero new errors.
+  3. If you changed UI, visually verify.
+  4. If you changed logic, run relevant tests.
+- **Commit discipline**: One logical change per commit. Commit message format: `[TASK-XXX] brief description`. Push after each completed task.
+- **Never modify tracking files in the same commit as code changes.** Tracking file updates are separate commits with message: `[TRACKING] update task-tracker / bug-register / etc.`
+
+## 5. Communication Protocol
+
+Agents do NOT talk to each other through chat. They communicate through:
+
+| Channel | Purpose |
+|---------|---------|
+| `task-tracker.csv` | Task status, assignments, completions |
+| `test-cases.csv` | Test definitions and results |
+| `bug-register.csv` | Bug reports, assignments, resolutions |
+| `session-log.csv` | Chronological log of all agent actions |
+| Handoff docs (`docs/agent-handoffs/`) | Detailed context transfer between phases |
+
+### Escalation Path
+1. **Dev ↔ Test**: Communicate through `bug-register.csv`. Dev fixes bugs, Test retests.
+2. **Dev/Test → PM**: Only when blocked or when a bug cannot be fixed after 2 attempts. Set bug status to `escalated` in `bug-register.csv`.
+3. **PM → Human**: PM surfaces escalated issues and decisions to the human user.
+
+## 6. Branding & UI Standards
+
+When the project has a branding section in `docs/PRD.md`, follow it. Otherwise use these defaults:
+
+- **Color palette**: Primary `#0B5FFF`, Background `#FFFFFF`, Surface `#F9FAFC`, Text `#333333`, Disabled `#888888`, Error `#DC2626`, Success `#16A34A`, Warning `#F59E0B`.
+- **Typography**: System font stack. Sizes: 12px caption, 14px body-small, 16px body, 20px subtitle, 24px heading.
+- **Spacing**: 4px base unit. Use multiples: 8, 12, 16, 24, 32, 48.
+- **Border radius**: 8px for cards, 4px for inputs, 9999px for pills.
+- **Icons**: Use a single icon library per project (MaterialIcons preferred). 24px nav, 20px inline.
+
+## 7. Code Standards
+
+- **TypeScript strict mode** unless the project specifies otherwise.
+- **No `any`** — use `unknown` + type guards if the type is truly unknown.
+- **No `console.log` in production code** — use the project's logging mechanism.
+- **JSDoc on exports** — every exported function/class/type gets a doc comment.
+- **Files under 200 lines** — split if larger.
+- **DRY** — extract shared logic into utils/helpers. No copy-paste across files.
+- **Error handling** — never swallow errors. Log, rethrow, or handle meaningfully.
+- **Naming**: `camelCase` for variables/functions, `PascalCase` for classes/types/components, `UPPER_SNAKE` for constants, `kebab-case` for file names.
+
+## 8. Database & State Rules
+
+- **Never hardcode connection strings.** Use environment variables via `.env`.
+- **Migrations are forward-only** in production. In development, destructive migrations are acceptable if documented.
+- **All state changes must be auditable.** If the project uses `.ai-workspace/`, log to `audit-log.jsonl`. Otherwise, use the project's logging.
+- **Backup before destructive operations.** If a migration drops data, note it in `session-log.csv`.
+
+## 9. Security
+
+- **No secrets in code.** API keys, tokens, passwords go in `.env` (gitignored).
+- **No secrets in tracking files.** CSVs are committed; never put credentials in them.
+- **Validate all inputs.** Use Zod, Joi, or equivalent for runtime validation.
+- **Sanitize user-facing output** to prevent XSS.
+
+## 10. When In Doubt
+
+1. Check the PRD (`docs/PRD.md`).
+2. Check the tracking files.
+3. Check the role-specific rule file.
+4. If still uncertain, log the question in `session-log.csv` with action `QUESTION` and wait for PM guidance (or ask the human user if you are the PM).

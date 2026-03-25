@@ -1,0 +1,163 @@
+---
+description: Inter-agent reporting protocol — defines all tracking CSV schemas, update rules, and communication flows. All agents must follow this.
+alwaysApply: true
+---
+
+# Multi-Agent Reporting Protocol
+
+## Overview
+
+Agents do NOT communicate through chat. All inter-agent communication happens through **four tracking CSV files** and **handoff documents**. This protocol defines the schemas, update rules, and flows.
+
+## File Locations
+
+All tracking files live in `docs/tracking/`:
+
+| File | Purpose | Who Writes | Who Reads |
+|------|---------|-----------|-----------|
+| `task-tracker.csv` | Task assignments, status, completions | PM (creates), Dev (updates own rows) | Everyone |
+| `test-cases.csv` | Test definitions, results | Test Manager (creates), Test Agent (updates results) | Everyone |
+| `bug-register.csv` | Bug reports, fixes, retests | Test Agent/Manager (creates), Dev (updates fixes) | Everyone |
+| `session-log.csv` | Chronological log of all agent actions | Everyone (append-only) | PM primarily |
+
+## 1. task-tracker.csv Schema
+
+```csv
+task_id,feature_id,title,assigned_to,status,priority,depends_on,allowed_files,description,started_at,completed_at,files_changed,notes
+```
+
+### Column Definitions
+
+| Column | Type | Values/Format |
+|--------|------|---------------|
+| `task_id` | string | `TASK-001`, `TASK-002`, ... (zero-padded) |
+| `feature_id` | string | `FEAT-001`, ... (matches PRD feature IDs) |
+| `title` | string | Short actionable title |
+| `assigned_to` | enum | `ui-ux-engineer`, `backend-engineer`, `fullstack-engineer`, `test-manager`, `test-agent` |
+| `status` | enum | `todo`, `in_progress`, `done`, `blocked`, `cancelled` |
+| `priority` | enum | `critical`, `high`, `medium`, `low` |
+| `depends_on` | string | Comma-separated task IDs or empty |
+| `allowed_files` | string | Semicolon-separated glob patterns |
+| `description` | string | Detailed requirements (quote if contains commas) |
+| `started_at` | ISO8601 | When agent set status to `in_progress` |
+| `completed_at` | ISO8601 | When agent set status to `done` |
+| `files_changed` | string | Semicolon-separated file paths |
+| `notes` | string | Freeform notes (quote if contains commas) |
+
+### Update Rules
+- **PM**: Creates rows (status=`todo`), may update any column.
+- **Dev Agent**: May ONLY update rows where `assigned_to` matches their role: `status`, `started_at`, `completed_at`, `files_changed`, `notes`.
+- **No deleting rows.** Set status to `cancelled` instead.
+
+## 2. test-cases.csv Schema
+
+```csv
+test_id,feature_id,title,description,preconditions,steps,expected_result,type,priority,assigned_to,status,actual_result,bug_id,tested_at,tested_by
+```
+
+### Column Definitions
+
+| Column | Type | Values/Format |
+|--------|------|---------------|
+| `test_id` | string | `TC-001`, `TC-002`, ... |
+| `feature_id` | string | Matches PRD feature ID |
+| `title` | string | Short test name |
+| `description` | string | What is being tested |
+| `preconditions` | string | Required setup (quote if complex) |
+| `steps` | string | Numbered steps separated by `; ` (semicolon-space) |
+| `expected_result` | string | What should happen |
+| `type` | enum | `happy_path`, `edge_case`, `negative`, `regression`, `smoke` |
+| `priority` | enum | `critical`, `high`, `medium`, `low` |
+| `assigned_to` | enum | `test-manager`, `test-agent` |
+| `status` | enum | `pending`, `in_progress`, `passed`, `failed`, `blocked`, `skipped` |
+| `actual_result` | string | What actually happened (filled after execution) |
+| `bug_id` | string | `BUG-XXX` if test failed, empty otherwise |
+| `tested_at` | ISO8601 | When test was executed |
+| `tested_by` | string | Who executed it |
+
+### Update Rules
+- **Test Manager**: Creates rows, may update any column.
+- **Test Agent**: May update `status`, `actual_result`, `bug_id`, `tested_at`, `tested_by` for assigned rows.
+- **No deleting rows.** Set status to `skipped` with a reason in `actual_result` if a test is no longer relevant.
+
+## 3. bug-register.csv Schema
+
+```csv
+bug_id,test_id,feature_id,title,severity,description,steps_to_reproduce,expected_result,actual_result,environment,screenshots_or_logs,assigned_to,status,attempts,fix_description,fixed_by,fixed_at,verified_at,verified_by,reported_at,reported_by,retest_notes
+```
+
+### Column Definitions
+
+| Column | Type | Values/Format |
+|--------|------|---------------|
+| `bug_id` | string | `BUG-001`, ... |
+| `test_id` | string | Which test case found it |
+| `feature_id` | string | Which feature |
+| `title` | string | Short descriptive title |
+| `severity` | enum | `critical`, `high`, `medium`, `low` |
+| `description` | string | Detailed description |
+| `steps_to_reproduce` | string | Steps separated by `; ` |
+| `expected_result` | string | What should happen |
+| `actual_result` | string | What actually happened |
+| `environment` | string | OS, browser, Node version, etc. |
+| `screenshots_or_logs` | string | File paths, semicolon-separated |
+| `assigned_to` | string | Dev agent role who should fix |
+| `status` | enum | `open`, `in_progress`, `fixed`, `closed`, `escalated`, `wont_fix` |
+| `attempts` | number | How many fix attempts |
+| `fix_description` | string | What the dev did to fix |
+| `fixed_by` | string | Dev role who fixed |
+| `fixed_at` | ISO8601 | When fix was applied |
+| `verified_at` | ISO8601 | When retest passed |
+| `verified_by` | string | Who retested |
+| `reported_at` | ISO8601 | When bug was filed |
+| `reported_by` | string | Who filed it |
+| `retest_notes` | string | Notes from retest attempts |
+
+### Update Rules
+- **Test Agent/Manager**: Creates rows (`status=open`), updates retest columns.
+- **Dev Agent**: Updates `status` (to `fixed` or `in_progress`), `fix_description`, `fixed_by`, `fixed_at`, `attempts`.
+- **PM**: May update `severity`, `assigned_to`, `status` (to `wont_fix` or `escalated`).
+
+### Escalation Flow
+```
+open → in_progress (dev picks up) → fixed (dev done) → closed (test passes)
+                                                      → open (test fails, back to dev)
+                                                         → in_progress → fixed → ...
+                                                            → escalated (after ≥2 failed attempts)
+                                                               → PM intervenes
+```
+
+## 4. session-log.csv Schema (Append-Only)
+
+```csv
+timestamp,agent_role,action,task_id,details
+```
+
+### Column Definitions
+
+| Column | Type | Values/Format |
+|--------|------|---------------|
+| `timestamp` | ISO8601 | When the action occurred |
+| `agent_role` | string | `pm`, `ui-ux-engineer`, `backend-engineer`, `fullstack-engineer`, `test-manager`, `test-agent` |
+| `action` | enum | `SESSION_START`, `SESSION_END`, `TASK_STARTED`, `TASK_COMPLETED`, `TASK_BLOCKED`, `BUG_FILED`, `BUG_FIX`, `BUG_ESCALATED`, `TEST_EXECUTED`, `TEST_PASSED`, `TEST_FAILED`, `SCOPE_CHANGE`, `QUESTION`, `NOTE` |
+| `task_id` | string | Related task/test/bug ID, or empty |
+| `details` | string | Freeform description of the action |
+
+### Rules
+- **Append-only**: Never modify or delete existing rows. Only add new rows.
+- **Every agent** must log `SESSION_START` at the beginning and `SESSION_END` at the end of their work session.
+- **Every significant action** gets a log entry. When in doubt, log it.
+
+## 5. How PM Reads Status
+
+The PM never needs to ask "what happened?" — they read the tracking files:
+
+| PM Question | Where to Look |
+|-------------|--------------|
+| "What is each agent doing?" | `task-tracker.csv` → filter `status=in_progress` |
+| "What's done?" | `task-tracker.csv` → filter `status=done` |
+| "What's blocked?" | `task-tracker.csv` → filter `status=blocked` |
+| "What bugs are open?" | `bug-register.csv` → filter `status=open` or `status=escalated` |
+| "How are tests going?" | `test-cases.csv` → count by status |
+| "What happened in the last session?" | `session-log.csv` → filter by recent timestamps |
+| "Is feature X ready to ship?" | `test-cases.csv` → all rows for feature X are `passed` AND `bug-register.csv` → no `open`/`in_progress` bugs for feature X |
